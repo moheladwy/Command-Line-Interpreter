@@ -31,7 +31,7 @@ public class Terminal {
 
         while (true) {
             String command = System.console().readLine();
-            if (command.equalsIgnoreCase("exit"))
+            if (command.trim().equalsIgnoreCase("exit"))
                 terminal.exit();
             terminal.parser.parse(command);
             terminal.chooseCommandAction();
