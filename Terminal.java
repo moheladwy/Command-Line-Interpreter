@@ -15,7 +15,7 @@ class Parser {
     }
 
     public String getCommandName() {
-        return commandName;
+        return commandName.trim().toLowerCase();
     }
 
     public String[] getArgs() {
@@ -40,12 +40,62 @@ public class Terminal {
 
     // This method will choose the suitable command method to be called
     public void chooseCommandAction() {
+        String[] args = parser.getArgs();
 
+        switch (parser.getCommandName()) {
+            case "pwd":
+                pwd();
+                break;
+            case "ls":
+                ls(args);
+                break;
+            case "cd":
+                cd(args);
+                break;
+            case "cat":
+                cat(args);
+                break;
+            case "echo":
+                echo(args);
+                break;
+            case "mkdir":
+                mkdir(args);
+                break;
+            case "rmdir":
+                rmdir(args);
+                break;
+            case "rm":
+                rm(args);
+                break;
+            case "touch":
+                touch(args);
+                break;
+            case "cp":
+                cp(args);
+                break;
+            case "wc":
+                wc(args);
+                break;
+            case ">":
+                redirect(args);
+                break;
+            case ">>":
+                redirectOrAppend(args);
+                break;
+            case "history":
+                history(args);
+                break;
+            case "exit":
+                exit();
+                break;
+            default:
+                break;
+        }
     }
 
     // TODO: Takes no arguments and prints the current path.
-    public String pwd() {
-        return new String();
+    public void pwd() {
+
     }
 
     /*
