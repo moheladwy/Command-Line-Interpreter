@@ -1,6 +1,12 @@
 class Parser {
-    String commandName;
-    String[] args;
+    private String commandName;
+    private String[] args;
+
+    // Constructor.
+    public Parser(String commandName, String[] args) {
+        this.commandName = (commandName == null) ? "" : commandName;
+        this.args = (args == null) ? new String[0] : args;
+    }
 
     // This method will divide the input into commandName and args
     // where "input" is the string command entered by the user
@@ -18,10 +24,18 @@ class Parser {
 }
 
 public class Terminal {
-    Parser parser;
+    Parser parser = new Parser(null, null);
 
     public static void main(String[] args) {
+        Terminal terminal = new Terminal();
 
+        while (true) {
+            String command = System.console().readLine();
+            if (command.equalsIgnoreCase("exit"))
+                terminal.exit();
+            terminal.parser.parse(command);
+            terminal.chooseCommandAction();
+        }
     }
 
     // This method will choose the suitable command method to be called
