@@ -1,3 +1,8 @@
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.BufferedReader;
+
 class Parser {
     private String commandName;
     private String[] args;
@@ -30,9 +35,11 @@ public class Terminal {
         Terminal terminal = new Terminal();
 
         while (true) {
+            System.out.print(System.getProperty("user.dir") + ": ");
             String command = System.console().readLine();
+
             if (command.trim().equalsIgnoreCase("exit"))
-                terminal.exit();
+                System.exit(0);
             terminal.parser.parse(command);
             terminal.chooseCommandAction();
         }
@@ -53,7 +60,11 @@ public class Terminal {
                 cd(args);
                 break;
             case "cat":
-                cat(args);
+                try {
+                    cat(args);
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
             case "echo":
                 echo(args);
@@ -74,7 +85,11 @@ public class Terminal {
                 cp(args);
                 break;
             case "wc":
-                wc(args);
+                try {
+                    wc(args);
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
             case ">":
                 redirect(args);
@@ -85,17 +100,14 @@ public class Terminal {
             case "history":
                 history(args);
                 break;
-            case "exit":
-                exit();
-                break;
             default:
                 break;
         }
     }
 
-    // TODO: Takes no arguments and prints the current path.
+    // Takes no arguments and prints the current path.
     public void pwd() {
-
+        System.out.println(System.getProperty("user.dir"));
     }
 
     /*
@@ -125,7 +137,26 @@ public class Terminal {
      * 2- if got -r as an argument then prints it in the reversed order.
      */
     public void ls(String[] args) {
+        File directory = new File(System.getProperty("user.dir"));
+        if (directory.exists() && directory.isDirectory()) {
+            String[] files = directory.list();
 
+            if (args.length == 0) {
+                if (files != null) {
+                    for (String fileName : files)
+                        System.out.println(fileName);
+                }
+            } else if (args.length == 1 && args[0].equalsIgnoreCase("-r")) {
+                if (files != null) {
+                    for (int i = files.length - 1; i > -1; i--)
+                        System.out.println(files[i]);
+                }
+            } else {
+                // TODO: Throw Exception couse it supose to take 0 or 1 argument only.
+            }
+        } else {
+            // TODO: Throw Exception couse an error with the current directory.
+        }
     }
 
     /*
@@ -179,12 +210,61 @@ public class Terminal {
 
     }
 
+    // Takes an array of File and prints the content of all files.
+    private static void printFilesContent(File[] files) throws IOException {
+        for (File file : files) {
+            if (file != null && file.isFile() && file.exists()) {
+                BufferedReader reader = new BufferedReader(new FileReader(file));
+                String line;
+
+                while ((line = reader.readLine()) != null)
+                    System.out.println(line);
+
+                reader.close();
+            }
+        }
+    }
+
+    // Takes a File and prints the content of it.
+    private static void printFileContent(File file) throws IOException {
+        if (file != null && file.isFile() && file.exists()) {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = reader.readLine()) != null)
+                System.out.println(line);
+
+            reader.close();
+        }
+    }
+
     /*
      * TODO: Takes 1 argument and prints the file’s content or takes 2 arguments
      * and concatenates the content of the 2 files and prints it.
      */
-    public void cat(String[] args) {
+    public void cat(String[] args) throws IOException {
+        String currentDirectory = System.getProperty("user.dir");
+        File directory = new File(currentDirectory);
 
+        if (directory.exists() && directory.isDirectory()) {
+            if (args.length == 1) {
+                // gets file object from the absolute path of the file.
+                File file = new File((currentDirectory + "/" + args[0]).trim());
+                printFileContent(file);
+
+            } else if (args.length == 2) {
+                File[] files = new File[2];
+                files[0] = new File((currentDirectory + "/" + args[0]).trim());
+                files[1] = new File((currentDirectory + "/" + args[1]).trim());
+
+                printFilesContent(files);
+
+            } else {
+                // TODO: Throw an Exception for number of arguments.
+            }
+        } else {
+            // TODO: Throw an Exception for the error with directory.
+        }
     }
 
     /*
@@ -202,8 +282,29 @@ public class Terminal {
      * Explanation:
      * # 9 lines, 79 word, 483 character with spaces, file name
      */
-    public void wc(String[] args) {
+    public void wc(String[] args) throws IOException {
+        if (args.length == 1) {
+            File file = new File((System.getProperty("user.dir") + "/" + args[0]).trim());
+            if (file != null && file.isFile()) {
 
+                BufferedReader reader = new BufferedReader(new FileReader(file));
+                String line;
+                int nLines = 0, nWords = 0, nChars = 0;
+                while ((line = reader.readLine()) != null) {
+                    String[] words = line.split(" ");
+                    nLines++;
+                    nWords += words.length;
+                    nChars += line.length();
+                }
+                reader.close();
+
+                System.out.println((nLines + " " + nWords + " " + nChars + " " + file.getName()).trim());
+            } else {
+                // TODO: Throw an Excpetion for the error of the file.
+            }
+        } else {
+            // TODO: Throw an Exception for the error of the number of the arguments.
+        }
     }
 
     /*
@@ -226,7 +327,7 @@ public class Terminal {
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
-     * you’ve used in the past
+     * you’ve used in the past.
      * Example:
      * history
      * Output:
@@ -235,11 +336,6 @@ public class Terminal {
      * 3 history
      */
     public void history(String[] args) {
-
-    }
-
-    // TODO: Implement the “exit” command which will allow the CLI to terminate.
-    public void exit() {
 
     }
 }
