@@ -3,6 +3,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.BufferedReader;
 
+// DONE.
 class Parser {
     private String commandName;
     private String[] args;
@@ -16,7 +17,15 @@ class Parser {
     // This method will divide the input into commandName and args
     // where "input" is the string command entered by the user
     public boolean parse(String input) {
-        return true;
+        String[] commandWords = input.split(" ");
+        if (commandWords != null && commandWords.length > 0) {
+            commandName = commandWords[0];
+            args = new String[commandWords.length - 1];
+            for (int i = 1; i < commandWords.length; i++)
+                args[i - 1] = commandWords[i];
+            return true;
+        }
+        return false;
     }
 
     public String getCommandName() {
