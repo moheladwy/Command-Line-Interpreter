@@ -226,8 +226,12 @@ public class Terminal {
     public void rmdir(String[] args) {
         Path directoryPath;
 
-        if(args[0] == "*")
+        if(args[0].equals("*") )
+        {
             directoryPath = currentDirectory;
+            deleteEmptyDirectories(directoryPath.toFile());
+            return;
+        }
         else
             directoryPath = currentDirectory.resolve(args[0]);
 
@@ -242,6 +246,29 @@ public class Terminal {
                 System.out.println("Failed to remove the directory.");
             }
         } 
+    }
+
+    public void deleteEmptyDirectories(File directory) {
+        if (directory.isDirectory()) {
+            File[] files = directory.listFiles();
+    
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        rmdir(new String[]{file.getName()});
+                    }
+                }
+    
+                if (directory.listFiles().length == 0) {
+                    boolean removed = directory.delete();
+                    if (removed) {
+                        System.out.println("Directory removed successfully: " + directory.getAbsolutePath());
+                    } else {
+                        System.out.println("Failed to remove the directory: " + directory.getAbsolutePath());
+                    }
+                }
+            }
+        }
     }
 
     /*
