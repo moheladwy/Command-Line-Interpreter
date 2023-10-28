@@ -1,7 +1,5 @@
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.BufferedReader;
+import java.io.*;
+import java.util.Arrays;
 
 // DONE.
 class Parser {
@@ -58,59 +56,76 @@ public class Terminal {
     public void chooseCommandAction() {
         String[] args = parser.getArgs();
 
-        switch (parser.getCommandName()) {
-            case "pwd":
-                pwd();
+        boolean hasRedirectOrAppend = false;
+        for (String arg : args) {
+            if (arg.equals(">") || arg.equals(">>")) {
+                hasRedirectOrAppend = true;
                 break;
-            case "ls":
-                ls(args);
-                break;
-            case "cd":
-                cd(args);
-                break;
-            case "cat":
-                try {
-                    cat(args);
-                } catch (IOException e) {
-                    System.out.println(e.getMessage());
+            }
+        }
+
+        if (hasRedirectOrAppend) {
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].equals(">") || args[i].equals(">>")) {
+                    String[] commandArgs = Arrays.copyOfRange(args, 0, i);
+                    String[] redirectArgs = Arrays.copyOfRange(args, i + 1, args.length);
+                    if (args[i].equals(">")) {
+                        redirect(commandArgs, redirectArgs);
+                    } else {
+                        redirectOrAppend(commandArgs, redirectArgs);
+                    }
+                    break;
                 }
-                break;
-            case "echo":
-                echo(args);
-                break;
-            case "mkdir":
-                mkdir(args);
-                break;
-            case "rmdir":
-                rmdir(args);
-                break;
-            case "rm":
-                rm(args);
-                break;
-            case "touch":
-                touch(args);
-                break;
-            case "cp":
-                cp(args);
-                break;
-            case "wc":
-                try {
-                    wc(args);
-                } catch (IOException e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
-            case ">":
-                redirect(args);
-                break;
-            case ">>":
-                redirectOrAppend(args);
-                break;
-            case "history":
-                history(args);
-                break;
-            default:
-                break;
+            }
+        } else {
+            switch (parser.getCommandName()) {
+                case "pwd":
+                    pwd();
+                    break;
+                case "ls":
+                    ls(args);
+                    break;
+                case "cd":
+                    cd(args);
+                    break;
+                case "cat":
+                    try {
+                        cat(args);
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                    }
+                    break;
+                case "echo":
+                    echo(args);
+                    break;
+                case "mkdir":
+                    mkdir(args);
+                    break;
+                case "rmdir":
+                    rmdir(args);
+                    break;
+                case "rm":
+                    rm(args);
+                    break;
+                case "touch":
+                    touch(args);
+                    break;
+                case "cp":
+                    cp(args);
+                    break;
+                case "wc":
+                    try {
+                        wc(args);
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                    }
+                    break;
+                case "history":
+                    history(args);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -134,10 +149,7 @@ public class Terminal {
 
     }
 
-    // TODO: Takes 1 argument and prints it.
-    public void echo(String[] args) {
 
-    }
 
     /*
      * TODO: Implement all these cases:
@@ -325,14 +337,46 @@ public class Terminal {
      * echo Hello World > myfile.txt
      * ls > file
      */
-    public void redirect(String[] args) {
-
+    // TODO: Takes 1 argument and prints it.
+    public void echo(String[] args) {
+        if (args.length != 1 || !args[0].startsWith("\"") || !args[0].endsWith("\"")) {
+            System.out.println("Invalid input for echo. Please provide a string within double quotes.");
+            return;
+        }
+        String input = args[0].substring(1, args[0].length() - 1); // Extracting the string within the quotes
+        System.out.println(input);
     }
 
-    // TODO: Like > but appends to the file if it exists.
-    public void redirectOrAppend(String[] args) {
-
+    public void redirect(String[] commandArgs, String[] redirectArgs) {
+        if (redirectArgs.length != 1) {
+            System.out.println("Invalid input for redirection.");
+            return;
+        }
+        String fileName = redirectArgs[0];
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            for (String arg : commandArgs) {
+                writer.write(arg + " ");
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred during file redirection: " + e.getMessage());
+        }
     }
+
+    public void redirectOrAppend(String[] commandArgs, String[] redirectArgs) {
+        if (redirectArgs.length != 1) {
+            System.out.println("Invalid input for redirection or appending.");
+            return;
+        }
+        String fileName = redirectArgs[0];
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
+            for (String arg : commandArgs) {
+                writer.write(arg + " ");
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred during file appending: " + e.getMessage());
+        }
+    }
+
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
