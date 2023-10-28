@@ -2,6 +2,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.BufferedReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
+
 
 // DONE.
 class Parser {
@@ -39,12 +44,16 @@ class Parser {
 
 public class Terminal {
     Parser parser = new Parser(null, null);
+    private Path currentDirectory;
 
+    public Terminal() {
+        currentDirectory = Path.of(System.getProperty("user.dir"));
+    }
     public static void main(String[] args) {
         Terminal terminal = new Terminal();
-
+       
         while (true) {
-            System.out.print(System.getProperty("user.dir") + ": ");
+            System.out.print(terminal.currentDirectory.normalize() + ": ");
             String command = System.console().readLine();
 
             if (command.trim().equalsIgnoreCase("exit"))
@@ -116,7 +125,7 @@ public class Terminal {
 
     // Takes no arguments and prints the current path.
     public void pwd() {
-        System.out.println(System.getProperty("user.dir"));
+        System.out.println(currentDirectory);
     }
 
     /*
@@ -131,7 +140,16 @@ public class Terminal {
      * and changes the current path to that path.
      */
     public void cd(String[] args) {
-
+        if(args.length == 0)
+        {
+            currentDirectory = Path.of(System.getProperty("user.home"));
+            return;
+        }
+        String newPath = args[0];
+        Path newFilePath = currentDirectory.resolve(newPath);
+        //Path newFilePath = Paths.get(newPath);
+        currentDirectory = (newFilePath);
+ 
     }
 
     // TODO: Takes 1 argument and prints it.
@@ -177,8 +195,24 @@ public class Terminal {
      * the new directory is created in the given path)
      */
     public void mkdir(String[] args) {
+        Path directoryPath =currentDirectory.resolve(args[0]);
 
+        File directory = new File(directoryPath.toString());
+        
+        if (!directory.exists()) 
+        {
+            boolean created = directory.mkdir();
+            if (created) {
+                System.out.println("Directory created successfully.");
+            } else {
+                System.out.println("Failed to create the directory.");
+            }
+        } 
+        else 
+            System.out.println("Directory already exists.");
+        
     }
+    
 
     /*
      * TODO: Implement all these cases:
@@ -190,7 +224,24 @@ public class Terminal {
      * the given directory only if it is empty.
      */
     public void rmdir(String[] args) {
+        Path directoryPath;
 
+        if(args[0] == "*")
+            directoryPath = currentDirectory;
+        else
+            directoryPath = currentDirectory.resolve(args[0]);
+
+        File directory = new File(directoryPath.toString());
+        
+        if (directory.exists()) 
+        {
+            boolean removed = directory.delete();
+            if (removed) {
+                System.out.println("Directory removed successfully.");
+            } else {
+                System.out.println("Failed to remove the directory.");
+            }
+        } 
     }
 
     /*
@@ -198,8 +249,19 @@ public class Terminal {
      * ends with a file name
      * and creates this file.
      */
+    //newResultPath = currentDirectory.resolve(relative_or_absolute_path);
     public void touch(String[] args) {
 
+       
+        Path newFilePath = currentDirectory.resolve(args[0]);
+        
+        try{
+            Files.createFile(newFilePath);
+            System.out.println("file was create successfully");
+        }
+        catch (IOException e) {
+            System.err.println("Failed to create or write to the file: " + e.getMessage());
+        }
     }
 
     /*
