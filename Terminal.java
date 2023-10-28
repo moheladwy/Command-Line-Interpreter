@@ -272,7 +272,7 @@ public class Terminal {
      * and copies the first directory (with all its content) into the second one.
      */
     public void cp(String[] args) {
-
+        
     }
 
     // TODO: Takes 1 argument which is a file name that exists in the current
