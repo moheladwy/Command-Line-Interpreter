@@ -75,7 +75,10 @@ public class Terminal {
                 ls(args);
                 break;
             case "cd":
-                cd(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    cd(args);
                 break;
             case "cat":
                 try {
@@ -91,13 +94,19 @@ public class Terminal {
                 mkdir(args);
                 break;
             case "rmdir":
-                rmdir(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    rmdir(args);
                 break;
             case "rm":
                 rm(args);
                 break;
             case "touch":
-                touch(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    touch(args);
                 break;
             case "cp":
                 cp(args);
@@ -147,7 +156,6 @@ public class Terminal {
         }
         String newPath = args[0];
         Path newFilePath = currentDirectory.resolve(newPath);
-        //Path newFilePath = Paths.get(newPath);
         currentDirectory = (newFilePath);
  
     }
@@ -195,24 +203,28 @@ public class Terminal {
      * the new directory is created in the given path)
      */
     public void mkdir(String[] args) {
-        Path directoryPath =currentDirectory.resolve(args[0]);
-
-        File directory = new File(directoryPath.toString());
-        
-        if (!directory.exists()) 
+        for(int i = 0; i < args.length;i++)
         {
-            boolean created = directory.mkdir();
-            if (created) {
-                System.out.println("Directory created successfully.");
-            } else {
-                System.out.println("Failed to create the directory.");
-            }
-        } 
-        else 
-            System.out.println("Directory already exists.");
+            Path directoryPath =currentDirectory.resolve(args[i]);
+
+            File directory = new File(directoryPath.toString());
         
+            createDirectory(directory);
+        }
     }
-    
+    void createDirectory(File directory)
+    {
+        if (!directory.exists()) 
+            {
+                boolean created = directory.mkdir();
+                if (created) 
+                    System.out.println("Directory created successfully.");
+                else 
+                    System.out.println("Failed to create the directory.");
+            } 
+            else 
+                System.out.println("Directory already exists.");
+    }
 
     /*
      * TODO: Implement all these cases:
@@ -236,16 +248,7 @@ public class Terminal {
             directoryPath = currentDirectory.resolve(args[0]);
 
         File directory = new File(directoryPath.toString());
-        
-        if (directory.exists()) 
-        {
-            boolean removed = directory.delete();
-            if (removed) {
-                System.out.println("Directory removed successfully.");
-            } else {
-                System.out.println("Failed to remove the directory.");
-            }
-        } 
+        removeDirectory(directory);
     }
 
     public void deleteEmptyDirectories(File directory) {
@@ -258,18 +261,24 @@ public class Terminal {
                         rmdir(new String[]{file.getName()});
                     }
                 }
-    
-                if (directory.listFiles().length == 0) {
-                    boolean removed = directory.delete();
-                    if (removed) {
-                        System.out.println("Directory removed successfully: " + directory.getAbsolutePath());
-                    } else {
-                        System.out.println("Failed to remove the directory: " + directory.getAbsolutePath());
-                    }
-                }
             }
         }
     }
+
+    void removeDirectory(File directory)
+    {
+        if (directory.exists()) 
+        {
+            boolean removed = directory.delete();
+            if (removed) {
+                System.out.println(" Directory removed successfully: " + "\"" + directory.getName() + "\"");
+            } else {
+                System.out.println(" Failed to remove the directory: " + "\"" + directory.getName() + "\"");
+            }
+        } 
+    }
+
+    
 
     /*
      * TODO: Takes 1 argument which is either the full path or the (short) path that
@@ -278,8 +287,6 @@ public class Terminal {
      */
     //newResultPath = currentDirectory.resolve(relative_or_absolute_path);
     public void touch(String[] args) {
-
-       
         Path newFilePath = currentDirectory.resolve(args[0]);
         
         try{
