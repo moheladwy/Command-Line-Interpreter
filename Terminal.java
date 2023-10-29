@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.Arrays;
 
 class ArgumentException extends Exception {
     public ArgumentException() {
@@ -14,6 +15,9 @@ class ArgumentException extends Exception {
 class Parser {
     private String commandName;
     private String[] args;
+    private boolean redirectFlag = false;
+    private boolean redirectOrAppendFlag = false;
+    private String redirectOutputFile;
 
     // Constructor.
     public Parser(String commandName, String[] args) {
@@ -30,6 +34,21 @@ class Parser {
             args = new String[commandWords.length - 1];
             for (int i = 1; i < commandWords.length; i++)
                 args[i - 1] = commandWords[i];
+            if (input.contains(">")) {
+                redirectFlag = true;
+                String[] parts = input.split(">");
+                redirectOutputFile = parts[1].trim();
+                if(parts[1].trim().equals("")){
+                    redirectOutputFile = parts[2].trim();
+                }
+            } else if (input.contains(">>")) {
+                redirectOrAppendFlag = true;
+                String[] parts = input.split(">>");
+                redirectOutputFile = parts[1].trim();
+                if(parts[1].trim().equals("")){
+                    redirectOutputFile = parts[2].trim();
+                }
+            }
             return true;
         }
         return false;
@@ -41,6 +60,18 @@ class Parser {
 
     public String[] getArgs() {
         return args;
+    }
+
+    public boolean hasRedirect() {
+        return redirectFlag;
+    }
+
+    public boolean hasRedirectOrAppend() {
+        return redirectOrAppendFlag;
+    }
+
+    public String getRedirectOutputFile() {
+        return redirectOutputFile;
     }
 }
 
@@ -64,10 +95,23 @@ public class Terminal {
     // This method will choose the suitable command method to be called
     public void chooseCommandAction() {
         String[] args = parser.getArgs();
-
+    
         switch (parser.getCommandName()) {
             case "pwd":
-                pwd();
+            try {
+                String output = pwd();
+                if (parser.hasRedirect()) {
+                    redirect(output, parser.getRedirectOutputFile());
+                }
+                else if (parser.hasRedirectOrAppend()) {
+                    redirectOrAppend(output, parser.getRedirectOutputFile());
+                }
+                else{
+                    System.out.println(output);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
                 break;
             case "ls":
                 try {
@@ -87,7 +131,20 @@ public class Terminal {
                 }
                 break;
             case "echo":
-                echo(args);
+                try {
+                String output = echo(args);
+                if (parser.hasRedirect()) {
+                    redirect(output, parser.getRedirectOutputFile());
+                }
+                else if (parser.hasRedirectOrAppend()) {
+                    redirectOrAppend(output, parser.getRedirectOutputFile());
+                }
+                else{
+                    System.out.println(output);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
                 break;
             case "mkdir":
                 mkdir(args);
@@ -111,12 +168,6 @@ public class Terminal {
                     System.out.println(e.getMessage());
                 }
                 break;
-            case ">":
-                redirect(args);
-                break;
-            case ">>":
-                redirectOrAppend(args);
-                break;
             case "history":
                 history(args);
                 break;
@@ -126,8 +177,8 @@ public class Terminal {
     }
 
     // Takes no arguments and prints the current path.
-    public void pwd() {
-        System.out.println(System.getProperty("user.dir"));
+    public String pwd() {
+       return System.getProperty("user.dir");
     }
 
     /*
@@ -146,15 +197,17 @@ public class Terminal {
     }
 
     // TODO: Takes 1 argument and prints it.
-    public void echo(String[] args) {
+    public String echo(String[] args) {
         // Check if there are arguments provided
         if (args.length == 0) {
-            System.out.println("No input provided.");
+            return "No input provided.";
         } else {
             // Concatenate all the arguments to form a single string without quotations
             StringBuilder echoText = new StringBuilder();
             for (String arg : args) {
-                if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
+                if(arg.equals(">") || arg.equals(">>")){
+                    break;
+                } else if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
                     echoText.append(arg, 1, arg.length() - 1).append(" ");
                 } else {
                     echoText.append(arg).append(" ");
@@ -163,9 +216,10 @@ public class Terminal {
 
             // Remove the trailing space and print the result
             String result = echoText.toString().trim();
-            System.out.println(result.replace("\"", ""));
+            return result.substring(1, result.length() - 1);
         }
     }
+    
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
@@ -319,14 +373,32 @@ public class Terminal {
      * echo Hello World > myfile.txt
      * ls > file
      */
-    public void redirect(String[] args) {
-
+    public void redirect(String output, String outputFile) {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+            writer.write(output);
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
     }
 
-    // TODO: Like > but appends to the file if it exists.
-    public void redirectOrAppend(String[] args) {
-
+    // Appends the output to the file if it exists.
+    public void redirectOrAppend(String output, String outputFile) {
+        try {
+            File file = new File(outputFile);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+            writer.append(output);
+            writer.newLine(); // add a new line after appending the content
+            writer.close();
+            } catch (IOException e) {
+                System.out.println("An error occurred: " + e.getMessage());
+            }
     }
+
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
