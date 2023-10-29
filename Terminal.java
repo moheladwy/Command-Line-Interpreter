@@ -1,5 +1,5 @@
 import java.io.*;
-import java.util.Arrays;
+import java.nio.file.*;
 
 class ArgumentException extends Exception {
     public ArgumentException() {
@@ -81,12 +81,16 @@ class Parser {
 
 public class Terminal {
     Parser parser = new Parser(null, null);
+    private Path currentDirectory;
 
+    public Terminal() {
+        currentDirectory = Path.of(System.getProperty("user.dir"));
+    }
     public static void main(String[] args) {
         Terminal terminal = new Terminal();
-
+       
         while (true) {
-            System.out.print(System.getProperty("user.dir") + ": ");
+            System.out.print(terminal.currentDirectory.normalize() + ": ");
             String command = System.console().readLine();
 
             if (command.trim().equalsIgnoreCase("exit"))
@@ -125,7 +129,10 @@ public class Terminal {
                 }
                 break;
             case "cd":
-                cd(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    cd(args);
                 break;
             case "cat":
                 try {
@@ -154,13 +161,19 @@ public class Terminal {
                 mkdir(args);
                 break;
             case "rmdir":
-                rmdir(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    rmdir(args);
                 break;
             case "rm":
                 rm(args);
                 break;
             case "touch":
-                touch(args);
+                if(args.length>1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    touch(args);
                 break;
             case "cp":
                 cp(args);
@@ -182,7 +195,7 @@ public class Terminal {
 
     // Takes no arguments and prints the current path.
     public String pwd() {
-       return System.getProperty("user.dir");
+        return currentDirectory.toString();
     }
 
     /*
@@ -197,7 +210,15 @@ public class Terminal {
      * and changes the current path to that path.
      */
     public void cd(String[] args) {
-
+        if(args.length == 0)
+        {
+            currentDirectory = Path.of(System.getProperty("user.home"));
+            return;
+        }
+        String newPath = args[0];
+        Path newFilePath = currentDirectory.resolve(newPath);
+        currentDirectory = (newFilePath);
+ 
     }
 
     // TODO: Takes 1 argument and prints it.
@@ -229,6 +250,7 @@ public class Terminal {
      * TODO: merge with alieldeen code after accepting his pull request.
      */
     public void ls(String[] args) throws Exception {
+    
         File directory = new File(System.getProperty("user.dir"));
         if (directory.exists() && directory.isDirectory()) {
             String[] files = directory.list();
@@ -260,7 +282,27 @@ public class Terminal {
      * the new directory is created in the given path)
      */
     public void mkdir(String[] args) {
+        for(int i = 0; i < args.length;i++)
+        {
+            Path directoryPath =currentDirectory.resolve(args[i]);
 
+            File directory = new File(directoryPath.toString());
+        
+            createDirectory(directory);
+        }
+    }
+    void createDirectory(File directory)
+    {
+        if (!directory.exists()) 
+            {
+                boolean created = directory.mkdir();
+                if (created) 
+                    System.out.println("Directory created successfully.");
+                else 
+                    System.out.println("Failed to create the directory.");
+            } 
+            else 
+                System.out.println("Directory already exists.");
     }
 
     /*
@@ -273,16 +315,66 @@ public class Terminal {
      * the given directory only if it is empty.
      */
     public void rmdir(String[] args) {
+        Path directoryPath;
 
+        if(args[0].equals("*") )
+        {
+            directoryPath = currentDirectory;
+            deleteEmptyDirectories(directoryPath.toFile());
+            return;
+        }
+        else
+            directoryPath = currentDirectory.resolve(args[0]);
+
+        File directory = new File(directoryPath.toString());
+        removeDirectory(directory);
     }
+
+    public void deleteEmptyDirectories(File directory) {
+        if (directory.isDirectory()) {
+            File[] files = directory.listFiles();
+    
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        rmdir(new String[]{file.getName()});
+                    }
+                }
+            }
+        }
+    }
+
+    void removeDirectory(File directory)
+    {
+        if (directory.exists()) 
+        {
+            boolean removed = directory.delete();
+            if (removed) {
+                System.out.println(" Directory removed successfully: " + "\"" + directory.getName() + "\"");
+            } else {
+                System.out.println(" Failed to remove the directory: " + "\"" + directory.getName() + "\"");
+            }
+        } 
+    }
+
+    
 
     /*
      * TODO: Takes 1 argument which is either the full path or the (short) path that
      * ends with a file name
      * and creates this file.
      */
+    //newResultPath = currentDirectory.resolve(relative_or_absolute_path);
     public void touch(String[] args) {
-
+        Path newFilePath = currentDirectory.resolve(args[0]);
+        
+        try{
+            Files.createFile(newFilePath);
+            System.out.println("file was created successfully");
+        }
+        catch (IOException e) {
+            System.err.println("Failed to create or write to the file: " + e.getMessage());
+        }
     }
 
     /*
@@ -293,7 +385,7 @@ public class Terminal {
      * and copies the first directory (with all its content) into the second one.
      */
     public void cp(String[] args) {
-
+        
     }
 
     // TODO: Takes 1 argument which is a file name that exists in the current
@@ -320,11 +412,13 @@ public class Terminal {
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
      */
+
     public void cat(String[] args) throws Exception {
         String currentDirectory = System.getProperty("user.dir");
         File directory = new File(currentDirectory);
 
         if (directory.exists() && directory.isDirectory()) {
+            
             if (args.length > 0 && args.length < 3) {
                 File[] files = new File[args.length];
 
@@ -334,14 +428,17 @@ public class Terminal {
                 printFilesContent(files);
             } else {
                 throw new ArgumentException("cat: takes 1 or 2 arguments only!");
+              
             }
         } else {
             throw new Exception("cat: No such file or directory!");
+            
         }
     }
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
+     
      */
     public void wc(String[] args) throws Exception {
         if (args.length == 1) {
