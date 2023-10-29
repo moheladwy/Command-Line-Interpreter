@@ -1,7 +1,9 @@
 import java.io.File;
 import java.io.FileReader;
+import java.nio.file.Files;
 import java.io.IOException;
 import java.io.BufferedReader;
+import java.nio.file.StandardCopyOption;
 
 // DONE.
 class Parser {
@@ -39,6 +41,9 @@ class Parser {
 
 public class Terminal {
     Parser parser = new Parser(null, null);
+
+
+
 
     public static void main(String[] args) {
         Terminal terminal = new Terminal();
@@ -209,8 +214,38 @@ public class Terminal {
      * directories (empty or not)
      * and copies the first directory (with all its content) into the second one.
      */
-    public void cp(String[] args) {
-
+     public void cp(String[] args){
+        if(args.length != 2){
+            System.out.println("Error: cp takes 2 arguments");
+            return;
+        }
+        String source = args[0];
+        String destination = args[1];
+        File sourceFile = new File(source);
+        File destinationFile = new File(destination);
+        if(!sourceFile.exists()){
+            System.out.println("Error: source file does not exist");
+            return;
+        } else if(sourceFile.exists() && destinationFile.isDirectory()) {
+            // If the destination is a directory, copy the source file to that directory
+            String destinationPath = destination = sourceFile.separator + sourceFile.getName();
+            File destinationPathFile = new File(destinationPath);
+            try {
+                Files.copy(sourceFile.toPath(), destinationPathFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                System.out.println("Error copying the file : " + e.getMessage());
+            }
+        } else if(!destinationFile.exists()){
+            // If the destination does not exist, copy the source to the destination path
+            try{
+                Files.copy(sourceFile.toPath(), destinationFile.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+                System.out.println("File copied successfully");
+        } catch (IOException e) {
+                System.out.println("Error copying the file :" + e.getMessage());
+            }
+        } else {
+            System.out.println("Destination is not a directory and already exists use 'cp-r' for directories");
+        }
     }
 
     // TODO: Takes 1 argument which is a file name that exists in the current
