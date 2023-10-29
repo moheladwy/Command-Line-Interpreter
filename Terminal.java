@@ -98,6 +98,9 @@ public class Terminal {
             case "cp":
                 cp(args);
                 break;
+            case "cp-r":
+                cp_r(args);
+                break;
             case "wc":
                 try {
                     wc(args);
@@ -248,138 +251,186 @@ public class Terminal {
         }
     }
 
-    // TODO: Takes 1 argument which is a file name that exists in the current
-    // directory and removes this file.
-    public void rm(String[] args) {
+     public void cp_r(String[] args) {
+         if (args.length != 2) {
+             System.out.println("Usage: cp-r <source_directory> <destination_directory>");
+             return;
+         }
 
-    }
+         String sourceDirectory = args[0];
+         String destinationDirectory = args[1];
 
-    // Takes an array of File and prints the content of all files.
-    private static void printFilesContent(File[] files) throws IOException {
-        for (File file : files) {
-            if (file != null && file.isFile() && file.exists()) {
-                BufferedReader reader = new BufferedReader(new FileReader(file));
-                String line;
+         File source = new File(sourceDirectory);
+         File destination = new File(destinationDirectory);
 
-                while ((line = reader.readLine()) != null)
-                    System.out.println(line);
+         if (!source.exists() || !source.isDirectory()) {
+             System.out.println("Source directory does not exist.");
+             return;
+         }
 
-                reader.close();
-            }
-        }
-    }
+         if (!destination.exists()) {
+             destination.mkdir();
+         }
 
-    // Takes a File and prints the content of it.
-    private static void printFileContent(File file) throws IOException {
-        if (file != null && file.isFile() && file.exists()) {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
+         if (!destination.isDirectory()) {
+             System.out.println("Destination is not a directory.");
+             return;
+         }
 
-            while ((line = reader.readLine()) != null)
-                System.out.println(line);
+         // TODO: Takes 1 argument which is a file name that exists in the current
+         // directory and removes this file.
+         public void rm (String[]args){
 
-            reader.close();
-        }
-    }
+         }
 
-    /*
-     * TODO: Takes 1 argument and prints the file’s content or takes 2 arguments
-     * and concatenates the content of the 2 files and prints it.
-     */
-    public void cat(String[] args) throws IOException {
-        String currentDirectory = System.getProperty("user.dir");
-        File directory = new File(currentDirectory);
+         // Takes an array of File and prints the content of all files.
+         private static void printFilesContent (File[]files) throws IOException {
+             for (File file : files) {
+                 if (file != null && file.isFile() && file.exists()) {
+                     BufferedReader reader = new BufferedReader(new FileReader(file));
+                     String line;
 
-        if (directory.exists() && directory.isDirectory()) {
-            if (args.length == 1) {
-                // gets file object from the absolute path of the file.
-                File file = new File((currentDirectory + "/" + args[0]).trim());
-                printFileContent(file);
+                     while ((line = reader.readLine()) != null)
+                         System.out.println(line);
 
-            } else if (args.length == 2) {
-                File[] files = new File[2];
-                files[0] = new File((currentDirectory + "/" + args[0]).trim());
-                files[1] = new File((currentDirectory + "/" + args[1]).trim());
+                     reader.close();
+                 }
+             }
+         }
+         File[] files = source.listFiles();
+         if (files != null) {
+             for (File file : files) {
+                 if (file.isDirectory()) {
+                     // For directories, recursively call cp_r
+                     String subDirectory = destinationDirectory + File.separator + file.getName();
+                     cp_r(new String[]{file.getPath(), subDirectory});
+                 } else {
+                     // For files, copy them to the destination directory
+                     String destinationPath = destinationDirectory + File.separator + file.getName();
+                     File destinationPathFile = new File(destinationPath);
 
-                printFilesContent(files);
+                     try {
+                         Files.copy(file.toPath(), destinationPathFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                     } catch (IOException e) {
+                         System.out.println("Error copying the file: " + e.getMessage());
+                     }
+                 }
+             }
+         }
+         System.out.println("Directory copied successfully.");
+     }
 
-            } else {
-                // TODO: Throw an Exception for number of arguments.
-            }
-        } else {
-            // TODO: Throw an Exception for the error with directory.
-        }
-    }
+         // Takes a File and prints the content of it.
+         private static void printFileContent (File file) throws IOException {
+             if (file != null && file.isFile() && file.exists()) {
+                 BufferedReader reader = new BufferedReader(new FileReader(file));
+                 String line;
 
-    /*
-     * TODO: Wc stands for “word count,” and as the name suggests, it is mainly used
-     * for counting purpose.
-     * By default, it displays four-columnar output.
-     * 1- First column shows number of lines present in a file specified,
-     * 2- second column shows number of words present in the file,
-     * 3- third column shows number of characters present in file, and
-     * 4- fourth column itself is the file name which are given as argument
-     * Example:
-     * wc file.txt
-     * Output:
-     * 9 79 483 file.txt
-     * Explanation:
-     * # 9 lines, 79 word, 483 character with spaces, file name
-     */
-    public void wc(String[] args) throws IOException {
-        if (args.length == 1) {
-            File file = new File((System.getProperty("user.dir") + "/" + args[0]).trim());
-            if (file != null && file.isFile()) {
+                 while ((line = reader.readLine()) != null)
+                     System.out.println(line);
 
-                BufferedReader reader = new BufferedReader(new FileReader(file));
-                String line;
-                int nLines = 0, nWords = 0, nChars = 0;
-                while ((line = reader.readLine()) != null) {
-                    String[] words = line.split(" ");
-                    nLines++;
-                    nWords += words.length;
-                    nChars += line.length();
-                }
-                reader.close();
+                 reader.close();
+             }
+         }
 
-                System.out.println((nLines + " " + nWords + " " + nChars + " " + file.getName()).trim());
-            } else {
-                // TODO: Throw an Excpetion for the error of the file.
-            }
-        } else {
-            // TODO: Throw an Exception for the error of the number of the arguments.
-        }
-    }
+         /*
+          * TODO: Takes 1 argument and prints the file’s content or takes 2 arguments
+          * and concatenates the content of the 2 files and prints it.
+          */
+         public void cat (String[]args) throws IOException {
+             String currentDirectory = System.getProperty("user.dir");
+             File directory = new File(currentDirectory);
 
-    /*
-     * TODO: Format: command > FileName
-     * Redirects the output of the first command to be written to a file.
-     * If the file doesn’t exist, it will be created.
-     * If the file exists, its original content will be replaced.
-     * Example:
-     * echo Hello World > myfile.txt
-     * ls > file
-     */
-    public void redirect(String[] args) {
+             if (directory.exists() && directory.isDirectory()) {
+                 if (args.length == 1) {
+                     // gets file object from the absolute path of the file.
+                     File file = new File((currentDirectory + "/" + args[0]).trim());
+                     printFileContent(file);
 
-    }
+                 } else if (args.length == 2) {
+                     File[] files = new File[2];
+                     files[0] = new File((currentDirectory + "/" + args[0]).trim());
+                     files[1] = new File((currentDirectory + "/" + args[1]).trim());
 
-    // TODO: Like > but appends to the file if it exists.
-    public void redirectOrAppend(String[] args) {
+                     printFilesContent(files);
 
-    }
+                 } else {
+                     // TODO: Throw an Exception for number of arguments.
+                 }
+             } else {
+                 // TODO: Throw an Exception for the error with directory.
+             }
+         }
 
-    /*
-     * TODO: Takes no parameters and displays an enumerated list with the commands
-     * you’ve used in the past.
-     * Example:
-     * history
-     * Output:
-     * 1 ls
-     * 2 mkdir tutorial
-     * 3 history
-     */
-    public void history(String[] args) {
+         /*
+          * TODO: Wc stands for “word count,” and as the name suggests, it is mainly used
+          * for counting purpose.
+          * By default, it displays four-columnar output.
+          * 1- First column shows number of lines present in a file specified,
+          * 2- second column shows number of words present in the file,
+          * 3- third column shows number of characters present in file, and
+          * 4- fourth column itself is the file name which are given as argument
+          * Example:
+          * wc file.txt
+          * Output:
+          * 9 79 483 file.txt
+          * Explanation:
+          * # 9 lines, 79 word, 483 character with spaces, file name
+          */
+         public void wc (String[]args) throws IOException {
+             if (args.length == 1) {
+                 File file = new File((System.getProperty("user.dir") + "/" + args[0]).trim());
+                 if (file != null && file.isFile()) {
 
-    }
+                     BufferedReader reader = new BufferedReader(new FileReader(file));
+                     String line;
+                     int nLines = 0, nWords = 0, nChars = 0;
+                     while ((line = reader.readLine()) != null) {
+                         String[] words = line.split(" ");
+                         nLines++;
+                         nWords += words.length;
+                         nChars += line.length();
+                     }
+                     reader.close();
+
+                     System.out.println((nLines + " " + nWords + " " + nChars + " " + file.getName()).trim());
+                 } else {
+                     // TODO: Throw an Excpetion for the error of the file.
+                 }
+             } else {
+                 // TODO: Throw an Exception for the error of the number of the arguments.
+             }
+         }
+
+         /*
+          * TODO: Format: command > FileName
+          * Redirects the output of the first command to be written to a file.
+          * If the file doesn’t exist, it will be created.
+          * If the file exists, its original content will be replaced.
+          * Example:
+          * echo Hello World > myfile.txt
+          * ls > file
+          */
+         public void redirect (String[]args){
+
+         }
+
+         // TODO: Like > but appends to the file if it exists.
+         public void redirectOrAppend (String[]args){
+
+         }
+
+         /*
+          * TODO: Takes no parameters and displays an enumerated list with the commands
+          * you’ve used in the past.
+          * Example:
+          * history
+          * Output:
+          * 1 ls
+          * 2 mkdir tutorial
+          * 3 history
+          */
+         public void history (String[]args){
+
+         }
 }
