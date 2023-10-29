@@ -15,6 +15,9 @@ class ArgumentException extends Exception {
 class Parser {
     private String commandName;
     private String[] args;
+    private boolean redirectFlag = false;
+    private boolean redirectOrAppendFlag = false;
+    private String redirectOutputFile;
 
     // Constructor.
     public Parser(String commandName, String[] args) {
@@ -31,6 +34,25 @@ class Parser {
             args = new String[commandWords.length - 1];
             for (int i = 1; i < commandWords.length; i++)
                 args[i - 1] = commandWords[i];
+            
+
+            if (input.contains(">>")) {
+            redirectOrAppendFlag = true;
+            String[] parts = input.split(">>");
+            redirectOutputFile = parts[1].trim();
+            if(parts[1].trim().equals("")){
+                redirectOutputFile = parts[2].trim();
+                }
+            }   
+            if (input.contains(">")) {
+                redirectFlag = true;
+                String[] parts = input.split(">");
+                redirectOutputFile = parts[1].trim();
+                if(parts[1].trim().equals("")){
+                    redirectOutputFile = parts[2].trim();
+                }
+            }
+         
             return true;
         }
         return false;
@@ -42,6 +64,18 @@ class Parser {
 
     public String[] getArgs() {
         return args;
+    }
+
+    public boolean hasRedirect() {
+        return redirectFlag;
+    }
+
+    public boolean hasRedirectOrAppend() {
+        return redirectOrAppendFlag;
+    }
+
+    public String getRedirectOutputFile() {
+        return redirectOutputFile;
     }
 }
 
@@ -69,10 +103,23 @@ public class Terminal {
     // This method will choose the suitable command method to be called
     public void chooseCommandAction() {
         String[] args = parser.getArgs();
-
+    
         switch (parser.getCommandName()) {
             case "pwd":
-                pwd();
+            try {
+                String output = pwd();
+                if (parser.hasRedirect() && !parser.hasRedirectOrAppend()) {
+                    redirect(output, parser.getRedirectOutputFile());
+                }
+                else if (parser.hasRedirectOrAppend()) {
+                    redirectOrAppend(output, parser.getRedirectOutputFile());
+                }
+                else{
+                    System.out.println(output);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
                 break;
             case "ls":
                 try {
@@ -95,7 +142,20 @@ public class Terminal {
                 }
                 break;
             case "echo":
-                echo(args);
+                try {
+                String output = echo(args);
+                if (parser.hasRedirect()) {
+                    redirect(output, parser.getRedirectOutputFile());
+                }
+                else if (parser.hasRedirectOrAppend()) {
+                    redirectOrAppend(output, parser.getRedirectOutputFile());
+                }
+                else{
+                    System.out.println(output);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
                 break;
             case "mkdir":
                 mkdir(args);
@@ -125,12 +185,6 @@ public class Terminal {
                     System.out.println(e.getMessage());
                 }
                 break;
-            case ">":
-                redirect(args);
-                break;
-            case ">>":
-                redirectOrAppend(args);
-                break;
             case "history":
                 history(args);
                 break;
@@ -140,8 +194,8 @@ public class Terminal {
     }
 
     // Takes no arguments and prints the current path.
-    public void pwd() {
-        System.out.println(currentDirectory);
+    public String pwd() {
+        return currentDirectory.toString();
     }
 
     /*
@@ -168,9 +222,29 @@ public class Terminal {
     }
 
     // TODO: Takes 1 argument and prints it.
-    public void echo(String[] args) {
+    public String echo(String[] args) {
+        // Check if there are arguments provided
+        if (args.length == 0) {
+            return "No input provided.";
+        } else {
+            // Concatenate all the arguments to form a single string without quotations
+            StringBuilder echoText = new StringBuilder();
+            for (String arg : args) {
+                if(arg.equals(">") || arg.equals(">>")){
+                    break;
+                } else if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
+                    echoText.append(arg, 1, arg.length() - 1).append(" ");
+                } else {
+                    echoText.append(arg).append(" ");
+                }
+            }
 
+            // Remove the trailing space and print the result
+            String result = echoText.toString().trim();
+            return result;
+        }
     }
+    
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
@@ -338,11 +412,13 @@ public class Terminal {
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
      */
+
     public void cat(String[] args) throws Exception {
         String currentDirectory = System.getProperty("user.dir");
         File directory = new File(currentDirectory);
 
         if (directory.exists() && directory.isDirectory()) {
+            
             if (args.length > 0 && args.length < 3) {
                 File[] files = new File[args.length];
 
@@ -352,14 +428,17 @@ public class Terminal {
                 printFilesContent(files);
             } else {
                 throw new ArgumentException("cat: takes 1 or 2 arguments only!");
+              
             }
         } else {
             throw new Exception("cat: No such file or directory!");
+            
         }
     }
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
+     
      */
     public void wc(String[] args) throws Exception {
         if (args.length == 1) {
@@ -395,14 +474,32 @@ public class Terminal {
      * echo Hello World > myfile.txt
      * ls > file
      */
-    public void redirect(String[] args) {
-
+    public void redirect(String output, String outputFile) {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+            writer.write(output);
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
     }
 
-    // TODO: Like > but appends to the file if it exists.
-    public void redirectOrAppend(String[] args) {
-
+    // Appends the output to the file if it exists.
+    public void redirectOrAppend(String output, String outputFile) {
+        try {
+            File file = new File(outputFile);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+            writer.append(output);
+            writer.newLine(); // add a new line after appending the content
+            writer.close();
+            } catch (IOException e) {
+                System.out.println("An error occurred: " + e.getMessage());
+            }
     }
+
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
