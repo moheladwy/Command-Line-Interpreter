@@ -253,7 +253,7 @@ public class Terminal {
 
      public void cp_r(String[] args) {
          if (args.length != 2) {
-             System.out.println("Usage: cp-r <source_directory> <destination_directory>");
+             System.out.println("Error : cp_r only uses 2 arguments");
              return;
          }
 
@@ -276,28 +276,7 @@ public class Terminal {
              System.out.println("Destination is not a directory.");
              return;
          }
-
-         // TODO: Takes 1 argument which is a file name that exists in the current
-         // directory and removes this file.
-         public void rm (String[]args){
-
-         }
-
-         // Takes an array of File and prints the content of all files.
-         private static void printFilesContent (File[]files) throws IOException {
-             for (File file : files) {
-                 if (file != null && file.isFile() && file.exists()) {
-                     BufferedReader reader = new BufferedReader(new FileReader(file));
-                     String line;
-
-                     while ((line = reader.readLine()) != null)
-                         System.out.println(line);
-
-                     reader.close();
-                 }
-             }
-         }
-         File[] files = source.listFiles();
+                  File[] files = source.listFiles();
          if (files != null) {
              for (File file : files) {
                  if (file.isDirectory()) {
@@ -320,6 +299,26 @@ public class Terminal {
          System.out.println("Directory copied successfully.");
      }
 
+         // TODO: Takes 1 argument which is a file name that exists in the current
+         // directory and removes this file.
+         public void rm (String[]args){
+
+         }
+
+         // Takes an array of File and prints the content of all files.
+         private static void printFilesContent (File[]files) throws IOException {
+             for (File file : files) {
+                 if (file != null && file.isFile() && file.exists()) {
+                     BufferedReader reader = new BufferedReader(new FileReader(file));
+                     String line;
+
+                     while ((line = reader.readLine()) != null)
+                         System.out.println(line);
+
+                     reader.close();
+                 }
+             }
+         }
          // Takes a File and prints the content of it.
          private static void printFileContent (File file) throws IOException {
              if (file != null && file.isFile() && file.exists()) {
