@@ -15,9 +15,8 @@ class ArgumentException extends Exception {
 class Parser {
     private String commandName;
     private String[] args;
-    private boolean redirectFlag = false;
-    private boolean redirectOrAppendFlag = false;
     private String redirectOutputFile;
+    private boolean redirectFlag = false, redirectOrAppendFlag = false;
 
     // Constructor.
     public Parser(String commandName, String[] args) {
@@ -34,28 +33,33 @@ class Parser {
             args = new String[commandWords.length - 1];
             for (int i = 1; i < commandWords.length; i++)
                 args[i - 1] = commandWords[i];
-            
 
             if (input.contains(">>")) {
-            redirectOrAppendFlag = true;
-            String[] parts = input.split(">>");
-            redirectOutputFile = parts[1].trim();
-            if(parts[1].trim().equals("")){
-                redirectOutputFile = parts[2].trim();
+                redirectOrAppendFlag = true;
+                String[] parts = input.split(">>");
+                redirectOutputFile = parts[1].trim();
+                if (parts[1].trim().equals("")) {
+                    redirectOutputFile = parts[2].trim();
                 }
-            }   
+            }
             if (input.contains(">")) {
                 redirectFlag = true;
                 String[] parts = input.split(">");
                 redirectOutputFile = parts[1].trim();
-                if(parts[1].trim().equals("")){
+                if (parts[1].trim().equals("")) {
                     redirectOutputFile = parts[2].trim();
                 }
             }
-         
+
             return true;
         }
         return false;
+    }
+
+    public void resetParser() {
+        args = new String[0];
+        commandName = redirectOutputFile = "";
+        redirectFlag = redirectOrAppendFlag = false;
     }
 
     public String getCommandName() {
@@ -86,82 +90,79 @@ public class Terminal {
     public Terminal() {
         currentDirectory = Path.of(System.getProperty("user.dir"));
     }
+
     public static void main(String[] args) {
         Terminal terminal = new Terminal();
-       
+
         while (true) {
             System.out.print(terminal.currentDirectory.normalize() + ": ");
             String command = System.console().readLine();
 
             if (command.trim().equalsIgnoreCase("exit"))
                 System.exit(0);
-            terminal.parser.parse(command);
-            terminal.chooseCommandAction();
+            try {
+                terminal.parser.resetParser();
+                terminal.parser.parse(command);
+                terminal.chooseCommandAction();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
     // This method will choose the suitable command method to be called
-    public void chooseCommandAction() {
+    public void chooseCommandAction() throws Exception {
         String[] args = parser.getArgs();
-    
+        String output = null;
+
         switch (parser.getCommandName()) {
             case "pwd":
-            try {
-                String output = pwd();
-                if (parser.hasRedirect() && !parser.hasRedirectOrAppend()) {
-                    redirect(output, parser.getRedirectOutputFile());
+                try {
+                    output = pwd();
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    return;
                 }
-                else if (parser.hasRedirectOrAppend()) {
-                    redirectOrAppend(output, parser.getRedirectOutputFile());
-                }
-                else{
-                    System.out.println(output);
-                }
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
                 break;
             case "ls":
                 try {
-                    ls(args);
+                    output = ls(args);
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
+                    return;
                 }
                 break;
             case "cd":
-                if(args.length>1)
+                if (args.length > 1)
                     System.err.println("Error: Too many arguments");
                 else
                     cd(args);
                 break;
             case "cat":
                 try {
-                    cat(args);
+                    output = cat(args);
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
+                    return;
                 }
                 break;
             case "echo":
                 try {
-                String output = echo(args);
-                if (parser.hasRedirect()) {
-                    redirect(output, parser.getRedirectOutputFile());
+                    output = echo(args);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
                 }
-                else if (parser.hasRedirectOrAppend()) {
-                    redirectOrAppend(output, parser.getRedirectOutputFile());
-                }
-                else{
-                    System.out.println(output);
-                }
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
                 break;
             case "mkdir":
-                mkdir(args);
+                try {
+                    mkdir(args);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    return;
+                }
                 break;
             case "rmdir":
-                if(args.length>1)
+                if (args.length > 1)
                     System.err.println("Error: Too many arguments");
                 else
                     rmdir(args);
@@ -170,7 +171,7 @@ public class Terminal {
                 rm(args);
                 break;
             case "touch":
-                if(args.length>1)
+                if (args.length > 1)
                     System.err.println("Error: Too many arguments");
                 else
                     touch(args);
@@ -180,20 +181,29 @@ public class Terminal {
                 break;
             case "wc":
                 try {
-                    wc(args);
+                    output = wc(args);
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
+                    return;
                 }
                 break;
             case "history":
                 history(args);
                 break;
             default:
-                break;
+                throw new ArgumentException(parser.getCommandName() + ": command not found");
+        }
+        if (output != null) {
+            if (parser.hasRedirect() && !parser.hasRedirectOrAppend())
+                redirect(output, parser.getRedirectOutputFile());
+            else if (parser.hasRedirectOrAppend())
+                redirectOrAppend(output, parser.getRedirectOutputFile());
+            else
+                System.out.println(output);
         }
     }
 
-    // Takes no arguments and prints the current path.
+    // Takes no arguments and returns the current path.
     public String pwd() {
         return currentDirectory.toString();
     }
@@ -201,24 +211,18 @@ public class Terminal {
     /*
      * TODO: Implement all these cases:
      * 
-     * 1. cd takes no arguments and changes the current path to the path of your
-     * home directory.
-     * 2. cd takes 1 argument which is “..” (e.g. cd ..) and changes the current
-     * directory to the previous directory.
-     * 3. cd takes 1 argument which is either the full path or the relative (short)
-     * path
-     * and changes the current path to that path.
+     * 1. cd takes 1 argument which is either the full path or the relative (short)
+     * path changes the current path to that path.
      */
     public void cd(String[] args) {
-        if(args.length == 0)
-        {
+        if (args.length == 0) {
             currentDirectory = Path.of(System.getProperty("user.home"));
             return;
         }
         String newPath = args[0];
         Path newFilePath = currentDirectory.resolve(newPath);
         currentDirectory = (newFilePath);
- 
+
     }
 
     // TODO: Takes 1 argument and prints it.
@@ -230,7 +234,7 @@ public class Terminal {
             // Concatenate all the arguments to form a single string without quotations
             StringBuilder echoText = new StringBuilder();
             for (String arg : args) {
-                if(arg.equals(">") || arg.equals(">>")){
+                if (arg.equals(">") || arg.equals(">>")) {
                     break;
                 } else if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
                     echoText.append(arg, 1, arg.length() - 1).append(" ");
@@ -244,33 +248,31 @@ public class Terminal {
             return result;
         }
     }
-    
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
      */
-    public void ls(String[] args) throws Exception {
-    
-        File directory = new File(System.getProperty("user.dir"));
+    public String ls(String[] args) throws Exception {
+        File directory = currentDirectory.toFile();
+        String output = null;
         if (directory.exists() && directory.isDirectory()) {
             String[] files = directory.list();
 
-            if (args.length == 0) {
+            if (args.length == 0 || (args.length > 1 && (parser.hasRedirect() || parser.hasRedirectOrAppend()))) {
+                if (files != null)
+                    output = String.join(" ", files);
+            } else if (args[0].trim().equalsIgnoreCase("-r")) {
                 if (files != null) {
-                    for (String fileName : files)
-                        System.out.println(fileName);
-                }
-            } else if (args.length == 1 && args[0].equalsIgnoreCase("-r")) {
-                if (files != null) {
+                    String[] reversedFiles = new String[files.length];
                     for (int i = files.length - 1; i > -1; i--)
-                        System.out.println(files[i]);
+                        reversedFiles[files.length - i - 1] = files[i];
+                    output = String.join(" ", reversedFiles);
                 }
-            } else {
+            } else
                 throw new ArgumentException("ls: takes no argument or take '-r' as an argument only!");
-            }
-        } else {
+        } else
             throw new Exception("ls: No such file or directory");
-        }
+        return output;
     }
 
     /*
@@ -281,28 +283,23 @@ public class Terminal {
      * 2- Path (full/short) that ends with a directory name (in this case
      * the new directory is created in the given path)
      */
-    public void mkdir(String[] args) {
-        for(int i = 0; i < args.length;i++)
-        {
-            Path directoryPath =currentDirectory.resolve(args[i]);
+    public void mkdir(String[] args) throws Exception {
+        for (int i = 0; i < args.length; i++) {
+            Path directoryPath = currentDirectory.resolve(args[i]);
 
             File directory = new File(directoryPath.toString());
-        
+
             createDirectory(directory);
         }
     }
-    void createDirectory(File directory)
-    {
-        if (!directory.exists()) 
-            {
-                boolean created = directory.mkdir();
-                if (created) 
-                    System.out.println("Directory created successfully.");
-                else 
-                    System.out.println("Failed to create the directory.");
-            } 
-            else 
-                System.out.println("Directory already exists.");
+
+    void createDirectory(File directory) throws Exception {
+        if (!directory.exists()) {
+            boolean created = directory.mkdir();
+            if (!created)
+                throw new Exception("Failed to create the directory.");
+        } else
+            throw new Exception("mkdir: cannot create directory '" + directory.getName() + "': File exists");
     }
 
     /*
@@ -317,13 +314,11 @@ public class Terminal {
     public void rmdir(String[] args) {
         Path directoryPath;
 
-        if(args[0].equals("*") )
-        {
+        if (args[0].equals("*")) {
             directoryPath = currentDirectory;
             deleteEmptyDirectories(directoryPath.toFile());
             return;
-        }
-        else
+        } else
             directoryPath = currentDirectory.resolve(args[0]);
 
         File directory = new File(directoryPath.toString());
@@ -333,46 +328,40 @@ public class Terminal {
     public void deleteEmptyDirectories(File directory) {
         if (directory.isDirectory()) {
             File[] files = directory.listFiles();
-    
+
             if (files != null) {
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        rmdir(new String[]{file.getName()});
+                        rmdir(new String[] { file.getName() });
                     }
                 }
             }
         }
     }
 
-    void removeDirectory(File directory)
-    {
-        if (directory.exists()) 
-        {
+    void removeDirectory(File directory) {
+        if (directory.exists()) {
             boolean removed = directory.delete();
             if (removed) {
                 System.out.println(" Directory removed successfully: " + "\"" + directory.getName() + "\"");
             } else {
                 System.out.println(" Failed to remove the directory: " + "\"" + directory.getName() + "\"");
             }
-        } 
+        }
     }
-
-    
 
     /*
      * TODO: Takes 1 argument which is either the full path or the (short) path that
      * ends with a file name
      * and creates this file.
      */
-    //newResultPath = currentDirectory.resolve(relative_or_absolute_path);
+    // newResultPath = currentDirectory.resolve(relative_or_absolute_path);
     public void touch(String[] args) {
         Path newFilePath = currentDirectory.resolve(args[0]);
-        
-        try{
+
+        try {
             Files.createFile(newFilePath);
-            System.out.println("file was created successfully");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Failed to create or write to the file: " + e.getMessage());
         }
     }
@@ -385,7 +374,7 @@ public class Terminal {
      * and copies the first directory (with all its content) into the second one.
      */
     public void cp(String[] args) {
-        
+
     }
 
     // TODO: Takes 1 argument which is a file name that exists in the current
@@ -395,59 +384,58 @@ public class Terminal {
     }
 
     // Takes an array of File and prints the content of all files.
-    private static void printFilesContent(File[] files) throws IOException {
+    private static String getFilesContent(File[] files) throws IOException {
+        String output = "";
         for (File file : files) {
             if (file != null && file.isFile() && file.exists()) {
                 BufferedReader reader = new BufferedReader(new FileReader(file));
                 String line;
 
                 while ((line = reader.readLine()) != null)
-                    System.out.println(line);
+                    output += line + "\n";
 
                 reader.close();
             }
         }
+        return output;
     }
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
      */
 
-    public void cat(String[] args) throws Exception {
-        String currentDirectory = System.getProperty("user.dir");
-        File directory = new File(currentDirectory);
+    public String cat(String[] args) throws Exception {
+        File directory = currentDirectory.toFile();
+        String output = null;
 
         if (directory.exists() && directory.isDirectory()) {
-            
-            if (args.length > 0 && args.length < 3) {
+
+            if ((args.length > 0 && args.length < 3) || parser.hasRedirect() || parser.hasRedirectOrAppend()) {
                 File[] files = new File[args.length];
 
                 for (int i = 0; i < args.length; i++)
                     files[i] = new File((currentDirectory + "/" + args[i]).trim());
 
-                printFilesContent(files);
-            } else {
+                output = getFilesContent(files);
+            } else
                 throw new ArgumentException("cat: takes 1 or 2 arguments only!");
-              
-            }
-        } else {
+        } else
             throw new Exception("cat: No such file or directory!");
-            
-        }
+        return output;
     }
 
     /*
      * TODO: merge with alieldeen code after accepting his pull request.
-     
+     * 
      */
-    public void wc(String[] args) throws Exception {
-        if (args.length == 1) {
-            File file = new File((System.getProperty("user.dir") + "/" + args[0]).trim());
+    public String wc(String[] args) throws Exception {
+        String output = null;
+        if (args.length == 1 || (args.length > 1 && (parser.hasRedirect() || parser.hasRedirectOrAppend()))) {
+            File file = new File((currentDirectory.toString() + "/" + args[0]).trim());
             if (file != null && file.isFile()) {
-
                 BufferedReader reader = new BufferedReader(new FileReader(file));
-                String line;
                 int nLines = 0, nWords = 0, nChars = 0;
+                String line;
                 while ((line = reader.readLine()) != null) {
                     String[] words = line.split(" ");
                     nLines++;
@@ -455,14 +443,12 @@ public class Terminal {
                     nChars += line.length();
                 }
                 reader.close();
-
-                System.out.println((nLines + " " + nWords + " " + nChars + " " + file.getName()).trim());
-            } else {
+                output = (nLines + " " + nWords + " " + nChars + " " + file.getName()).trim();
+            } else
                 throw new Exception("wc: No such file or directory!");
-            }
-        } else {
+        } else
             throw new ArgumentException("wc: takes 1 argument 'file name' only!");
-        }
+        return output;
     }
 
     /*
@@ -492,14 +478,15 @@ public class Terminal {
                 file.createNewFile();
             }
             BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+            if (file.getTotalSpace() == 0)
+                writer.append("\n");
             writer.append(output);
             writer.newLine(); // add a new line after appending the content
             writer.close();
-            } catch (IOException e) {
-                System.out.println("An error occurred: " + e.getMessage());
-            }
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e.getMessage());
+        }
     }
-
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
