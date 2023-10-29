@@ -1,5 +1,14 @@
 import java.io.*;
-import java.util.Arrays;
+
+class ArgumentException extends Exception {
+    public ArgumentException() {
+        super();
+    }
+
+    public ArgumentException(String message) {
+        super(message);
+    }
+}
 
 // DONE.
 class Parser {
@@ -56,76 +65,63 @@ public class Terminal {
     public void chooseCommandAction() {
         String[] args = parser.getArgs();
 
-        boolean hasRedirectOrAppend = false;
-        for (String arg : args) {
-            if (arg.equals(">") || arg.equals(">>")) {
-                hasRedirectOrAppend = true;
+        switch (parser.getCommandName()) {
+            case "pwd":
+                pwd();
                 break;
-            }
-        }
-
-        if (hasRedirectOrAppend) {
-            for (int i = 0; i < args.length; i++) {
-                if (args[i].equals(">") || args[i].equals(">>")) {
-                    String[] commandArgs = Arrays.copyOfRange(args, 0, i);
-                    String[] redirectArgs = Arrays.copyOfRange(args, i + 1, args.length);
-                    if (args[i].equals(">")) {
-                        redirect(commandArgs, redirectArgs);
-                    } else {
-                        redirectOrAppend(commandArgs, redirectArgs);
-                    }
-                    break;
-                }
-            }
-        } else {
-            switch (parser.getCommandName()) {
-                case "pwd":
-                    pwd();
-                    break;
-                case "ls":
+            case "ls":
+                try {
                     ls(args);
-                    break;
-                case "cd":
-                    cd(args);
-                    break;
-                case "cat":
-                    try {
-                        cat(args);
-                    } catch (IOException e) {
-                        System.out.println(e.getMessage());
-                    }
-                    break;
-                case "echo":
-                    echo(args);
-                    break;
-                case "mkdir":
-                    mkdir(args);
-                    break;
-                case "rmdir":
-                    rmdir(args);
-                    break;
-                case "rm":
-                    rm(args);
-                    break;
-                case "touch":
-                    touch(args);
-                    break;
-                case "cp":
-                    cp(args);
-                    break;
-                case "wc":
-                    try {
-                        wc(args);
-                    } catch (IOException e) {
-                        System.out.println(e.getMessage());
-                    }
-                    break;
-                case "history":
-                    history(args);
-                    break;
-                default:
-                    break;
-            }
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+                break;
+            case "cd":
+                cd(args);
+                break;
+            case "cat":
+                try {
+                    cat(args);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+                break;
+            case "echo":
+                echo(args);
+                break;
+            case "mkdir":
+                mkdir(args);
+                break;
+            case "rmdir":
+                rmdir(args);
+                break;
+            case "rm":
+                rm(args);
+                break;
+            case "touch":
+                touch(args);
+                break;
+            case "cp":
+                cp(args);
+                break;
+            case "wc":
+                try {
+                    wc(args);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+                break;
+            case ">":
+                redirect(args);
+                break;
+            case ">>":
+                redirectOrAppend(args);
+                break;
+            case "history":
+                history(args);
+                break;
+            default:
+                break;
         }
     }
 
@@ -149,15 +145,32 @@ public class Terminal {
 
     }
 
+    // TODO: Takes 1 argument and prints it.
+    public void echo(String[] args) {
+        // Check if there are arguments provided
+        if (args.length == 0) {
+            System.out.println("No input provided.");
+        } else {
+            // Concatenate all the arguments to form a single string without quotations
+            StringBuilder echoText = new StringBuilder();
+            for (String arg : args) {
+                if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
+                    echoText.append(arg, 1, arg.length() - 1).append(" ");
+                } else {
+                    echoText.append(arg).append(" ");
+                }
+            }
 
+            // Remove the trailing space and print the result
+            String result = echoText.toString().trim();
+            System.out.println(result.replace("\"", ""));
+        }
+    }
 
     /*
-     * TODO: Implement all these cases:
-     * 1- if takes no arguments then lists the contents of the current directory
-     * sorted alphabetically,
-     * 2- if got -r as an argument then prints it in the reversed order.
+     * TODO: merge with alieldeen code after accepting his pull request.
      */
-    public void ls(String[] args) {
+    public void ls(String[] args) throws Exception {
         File directory = new File(System.getProperty("user.dir"));
         if (directory.exists() && directory.isDirectory()) {
             String[] files = directory.list();
@@ -173,10 +186,10 @@ public class Terminal {
                         System.out.println(files[i]);
                 }
             } else {
-                // TODO: Throw Exception couse it supose to take 0 or 1 argument only.
+                throw new ArgumentException("ls: takes no argument or take '-r' as an argument only!");
             }
         } else {
-            // TODO: Throw Exception couse an error with the current directory.
+            throw new Exception("ls: No such file or directory");
         }
     }
 
@@ -246,64 +259,33 @@ public class Terminal {
         }
     }
 
-    // Takes a File and prints the content of it.
-    private static void printFileContent(File file) throws IOException {
-        if (file != null && file.isFile() && file.exists()) {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-
-            while ((line = reader.readLine()) != null)
-                System.out.println(line);
-
-            reader.close();
-        }
-    }
-
     /*
-     * TODO: Takes 1 argument and prints the file’s content or takes 2 arguments
-     * and concatenates the content of the 2 files and prints it.
+     * TODO: merge with alieldeen code after accepting his pull request.
      */
-    public void cat(String[] args) throws IOException {
+    public void cat(String[] args) throws Exception {
         String currentDirectory = System.getProperty("user.dir");
         File directory = new File(currentDirectory);
 
         if (directory.exists() && directory.isDirectory()) {
-            if (args.length == 1) {
-                // gets file object from the absolute path of the file.
-                File file = new File((currentDirectory + "/" + args[0]).trim());
-                printFileContent(file);
+            if (args.length > 0 && args.length < 3) {
+                File[] files = new File[args.length];
 
-            } else if (args.length == 2) {
-                File[] files = new File[2];
-                files[0] = new File((currentDirectory + "/" + args[0]).trim());
-                files[1] = new File((currentDirectory + "/" + args[1]).trim());
+                for (int i = 0; i < args.length; i++)
+                    files[i] = new File((currentDirectory + "/" + args[i]).trim());
 
                 printFilesContent(files);
-
             } else {
-                // TODO: Throw an Exception for number of arguments.
+                throw new ArgumentException("cat: takes 1 or 2 arguments only!");
             }
         } else {
-            // TODO: Throw an Exception for the error with directory.
+            throw new Exception("cat: No such file or directory!");
         }
     }
 
     /*
-     * TODO: Wc stands for “word count,” and as the name suggests, it is mainly used
-     * for counting purpose.
-     * By default, it displays four-columnar output.
-     * 1- First column shows number of lines present in a file specified,
-     * 2- second column shows number of words present in the file,
-     * 3- third column shows number of characters present in file, and
-     * 4- fourth column itself is the file name which are given as argument
-     * Example:
-     * wc file.txt
-     * Output:
-     * 9 79 483 file.txt
-     * Explanation:
-     * # 9 lines, 79 word, 483 character with spaces, file name
+     * TODO: merge with alieldeen code after accepting his pull request.
      */
-    public void wc(String[] args) throws IOException {
+    public void wc(String[] args) throws Exception {
         if (args.length == 1) {
             File file = new File((System.getProperty("user.dir") + "/" + args[0]).trim());
             if (file != null && file.isFile()) {
@@ -321,10 +303,10 @@ public class Terminal {
 
                 System.out.println((nLines + " " + nWords + " " + nChars + " " + file.getName()).trim());
             } else {
-                // TODO: Throw an Excpetion for the error of the file.
+                throw new Exception("wc: No such file or directory!");
             }
         } else {
-            // TODO: Throw an Exception for the error of the number of the arguments.
+            throw new ArgumentException("wc: takes 1 argument 'file name' only!");
         }
     }
 
@@ -337,46 +319,14 @@ public class Terminal {
      * echo Hello World > myfile.txt
      * ls > file
      */
-    // TODO: Takes 1 argument and prints it.
-    public void echo(String[] args) {
-        if (args.length != 1 || !args[0].startsWith("\"") || !args[0].endsWith("\"")) {
-            System.out.println("Invalid input for echo. Please provide a string within double quotes.");
-            return;
-        }
-        String input = args[0].substring(1, args[0].length() - 1); // Extracting the string within the quotes
-        System.out.println(input);
+    public void redirect(String[] args) {
+
     }
 
-    public void redirect(String[] commandArgs, String[] redirectArgs) {
-        if (redirectArgs.length != 1) {
-            System.out.println("Invalid input for redirection.");
-            return;
-        }
-        String fileName = redirectArgs[0];
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            for (String arg : commandArgs) {
-                writer.write(arg + " ");
-            }
-        } catch (IOException e) {
-            System.out.println("An error occurred during file redirection: " + e.getMessage());
-        }
-    }
+    // TODO: Like > but appends to the file if it exists.
+    public void redirectOrAppend(String[] args) {
 
-    public void redirectOrAppend(String[] commandArgs, String[] redirectArgs) {
-        if (redirectArgs.length != 1) {
-            System.out.println("Invalid input for redirection or appending.");
-            return;
-        }
-        String fileName = redirectArgs[0];
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
-            for (String arg : commandArgs) {
-                writer.write(arg + " ");
-            }
-        } catch (IOException e) {
-            System.out.println("An error occurred during file appending: " + e.getMessage());
-        }
     }
-
 
     /*
      * TODO: Takes no parameters and displays an enumerated list with the commands
