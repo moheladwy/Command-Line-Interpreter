@@ -34,6 +34,16 @@ class Parser {
             args = new String[commandWords.length - 1];
             for (int i = 1; i < commandWords.length; i++)
                 args[i - 1] = commandWords[i];
+            
+
+            if (input.contains(">>")) {
+            redirectOrAppendFlag = true;
+            String[] parts = input.split(">>");
+            redirectOutputFile = parts[1].trim();
+            if(parts[1].trim().equals("")){
+                redirectOutputFile = parts[2].trim();
+                }
+            }   
             if (input.contains(">")) {
                 redirectFlag = true;
                 String[] parts = input.split(">");
@@ -41,14 +51,8 @@ class Parser {
                 if(parts[1].trim().equals("")){
                     redirectOutputFile = parts[2].trim();
                 }
-            } else if (input.contains(">>")) {
-                redirectOrAppendFlag = true;
-                String[] parts = input.split(">>");
-                redirectOutputFile = parts[1].trim();
-                if(parts[1].trim().equals("")){
-                    redirectOutputFile = parts[2].trim();
-                }
             }
+         
             return true;
         }
         return false;
@@ -100,7 +104,7 @@ public class Terminal {
             case "pwd":
             try {
                 String output = pwd();
-                if (parser.hasRedirect()) {
+                if (parser.hasRedirect() && !parser.hasRedirectOrAppend()) {
                     redirect(output, parser.getRedirectOutputFile());
                 }
                 else if (parser.hasRedirectOrAppend()) {
@@ -216,7 +220,7 @@ public class Terminal {
 
             // Remove the trailing space and print the result
             String result = echoText.toString().trim();
-            return result.substring(1, result.length() - 1);
+            return result;
         }
     }
     
