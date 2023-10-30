@@ -86,9 +86,13 @@ class Parser {
 public class Terminal {
     Parser parser = new Parser(null, null);
     private Path currentDirectory;
+     private List<String> commandHistory;
 
     public Terminal() {
         currentDirectory = Path.of(System.getProperty("user.dir"));
+    }
+    public Terminal() {
+        commandHistory = new ArrayList<>();
     }
 
     public static void main(String[] args) {
@@ -114,7 +118,6 @@ public class Terminal {
     public void chooseCommandAction() throws Exception {
         String[] args = parser.getArgs();
         String output = null;
-
         switch (parser.getCommandName()) {
             case "pwd":
                 try {
@@ -168,6 +171,10 @@ public class Terminal {
                     rmdir(args);
                 break;
             case "rm":
+                if (args.length > 1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    rm(args);
                 rm(args);
                 break;
             case "touch":
@@ -177,7 +184,16 @@ public class Terminal {
                     touch(args);
                 break;
             case "cp":
+                if (args.length > 2)
+                    System.err.println("Error: Too many arguments");
+                else
                 cp(args);
+                break;
+            case "cp-r":
+                if (args.length > 2)
+                    System.err.println("Error: Too many arguments");
+                else
+                cp_r(args);
                 break;
             case "wc":
                 try {
@@ -188,11 +204,19 @@ public class Terminal {
                 }
                 break;
             case "history":
+                if (args.length > 0)
+                    System.err.println("Error: History takes no arguments");
+                else
                 history(args);
                 break;
             default:
                 throw new ArgumentException(parser.getCommandName() + ": command not found");
         }
+                if (parser.getCommandName().equals("history")) {
+                    history();
+                } else {
+                    commandHistory.add(command);
+                }
         if (output != null) {
             if (parser.hasRedirect() && !parser.hasRedirectOrAppend())
                 redirect(output, parser.getRedirectOutputFile());
@@ -373,15 +397,114 @@ public class Terminal {
      * directories (empty or not)
      * and copies the first directory (with all its content) into the second one.
      */
-    public void cp(String[] args) {
-
+     public void cp(String[] args){
+        if(args.length != 2){
+            System.out.println("Error: cp takes 2 arguments");
+            return;
+        }
+        String source = args[0];
+        String destination = args[1];
+        File sourceFile = new File(source);
+        File destinationFile = new File(destination);
+        if(!sourceFile.exists()){
+            System.out.println("Error: source file does not exist");
+            return;
+        } else if(sourceFile.exists() && destinationFile.isDirectory()) {
+            // If the destination is a directory, copy the source file to that directory
+            String destinationPath = destination = sourceFile.separator + sourceFile.getName();
+            File destinationPathFile = new File(destinationPath);
+            try {
+                Files.copy(sourceFile.toPath(), destinationPathFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                System.out.println("Error copying the file : " + e.getMessage());
+            }
+        } else if(!destinationFile.exists()){
+            // If the destination does not exist, copy the source to the destination path
+            try{
+                Files.copy(sourceFile.toPath(), destinationFile.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+                System.out.println("File copied successfully");
+        } catch (IOException e) {
+                System.out.println("Error copying the file :" + e.getMessage());
+            }
+        } else {
+            System.out.println("Destination is not a directory and already exists use 'cp-r' for directories");
+        }
     }
 
+     public void cp_r(String[] args) {
+         if (args.length != 2) {
+             System.out.println("Error : cp_r only uses 2 arguments");
+             return;
+         }
+
+         String sourceDirectory = args[0];
+         String destinationDirectory = args[1];
+
+         File source = new File(sourceDirectory);
+         File destination = new File(destinationDirectory);
+
+         if (!source.exists() || !source.isDirectory()) {
+             System.out.println("Source directory does not exist.");
+             return;
+         }
+
+         if (!destination.exists()) {
+             destination.mkdir();
+         }
+
+         if (!destination.isDirectory()) {
+             System.out.println("Destination is not a directory.");
+             return;
+         }
+
+         File[] files = source.listFiles();
+         if (files != null) {
+             for (File file : files) {
+                 if (file.isDirectory()) {
+                     // For directories, recursively call cp_r
+                     String subDirectory = destinationDirectory + File.separator + file.getName();
+                     cp_r(new String[]{file.getPath(), subDirectory});
+                 } else {
+                     // For files, copy them to the destination directory
+                     String destinationPath = destinationDirectory + File.separator + file.getName();
+                     File destinationPathFile = new File(destinationPath);
+
+                     try {
+                         Files.copy(file.toPath(), destinationPathFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                     } catch (IOException e) {
+                         System.out.println("Error copying the file: " + e.getMessage());
+                     }
+                 }
+             }
+         }
+         System.out.println("Directory copied successfully.");
+     }
     // TODO: Takes 1 argument which is a file name that exists in the current
     // directory and removes this file.
     public void rm(String[] args) {
+         if (args.length != 1){
+             System.out.println("Error: rm takes 1 argument");
+             return;
+         }
+         String fileName = args[0];
+         File file = new File(fileName);
+            if (!file.exists()){
+                System.out.println("Error: file does not exist");
+                return;
+            }
+            if (file.isDirectory()){
+                System.out.println("Error: file is a directory");
+                return;
+            } else if (file.isFile()){
+                file.delete();
+                System.out.println("File deleted successfully");
+            } else if (file.delete()){
+                System.out.println("File deleted successfully");
+            } else {
+                System.out.println("Error: file could not be deleted");
+            }
 
-    }
+     }
 
     // Takes an array of File and prints the content of all files.
     private static String getFilesContent(File[] files) throws IOException {
@@ -499,6 +622,9 @@ public class Terminal {
      * 3 history
      */
     public void history(String[] args) {
-
+        System.out.println("Command History:");
+        for (int i = 0; i < commandHistory.size(); i++) {
+            System.out.println(i + 1 + " " + commandHistory.get(i));
+        }
     }
 }
