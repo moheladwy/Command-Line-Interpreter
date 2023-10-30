@@ -86,9 +86,13 @@ class Parser {
 public class Terminal {
     Parser parser = new Parser(null, null);
     private Path currentDirectory;
+     private List<String> commandHistory;
 
     public Terminal() {
         currentDirectory = Path.of(System.getProperty("user.dir"));
+    }
+    public Terminal() {
+        commandHistory = new ArrayList<>();
     }
 
     public static void main(String[] args) {
@@ -114,7 +118,6 @@ public class Terminal {
     public void chooseCommandAction() throws Exception {
         String[] args = parser.getArgs();
         String output = null;
-
         switch (parser.getCommandName()) {
             case "pwd":
                 try {
@@ -168,6 +171,10 @@ public class Terminal {
                     rmdir(args);
                 break;
             case "rm":
+                if (args.length > 1)
+                    System.err.println("Error: Too many arguments");
+                else
+                    rm(args);
                 rm(args);
                 break;
             case "touch":
@@ -177,9 +184,15 @@ public class Terminal {
                     touch(args);
                 break;
             case "cp":
+                if (args.length > 2)
+                    System.err.println("Error: Too many arguments");
+                else
                 cp(args);
                 break;
             case "cp-r":
+                if (args.length > 2)
+                    System.err.println("Error: Too many arguments");
+                else
                 cp_r(args);
                 break;
             case "wc":
@@ -191,11 +204,19 @@ public class Terminal {
                 }
                 break;
             case "history":
+                if (args.length > 0)
+                    System.err.println("Error: History takes no arguments");
+                else
                 history(args);
                 break;
             default:
                 throw new ArgumentException(parser.getCommandName() + ": command not found");
         }
+                if (parser.getCommandName().equals("history")) {
+                    history();
+                } else {
+                    commandHistory.add(command);
+                }
         if (output != null) {
             if (parser.hasRedirect() && !parser.hasRedirectOrAppend())
                 redirect(output, parser.getRedirectOutputFile());
@@ -601,6 +622,9 @@ public class Terminal {
      * 3 history
      */
     public void history(String[] args) {
-
+        System.out.println("Command History:");
+        for (int i = 0; i < commandHistory.size(); i++) {
+            System.out.println(i + 1 + " " + commandHistory.get(i));
+        }
     }
 }

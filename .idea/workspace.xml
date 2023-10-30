@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0c243743-b139-4003-8856-346a76bbc557" name="Changes" comment="">
+    <list default="true" id="0c243743-b139-4003-8856-346a76bbc557" name="Changes" comment="added rm command implementation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Terminal.java" beforeDir="false" afterPath="$PROJECT_DIR$/Terminal.java" afterDir="false" />
     </list>
@@ -79,8 +79,17 @@
       <updated>1698659657144</updated>
       <workItem from="1698659661181" duration="1193000" />
       <workItem from="1698665916469" duration="87000" />
-      <workItem from="1698694145659" duration="2157000" />
+      <workItem from="1698694145659" duration="3204000" />
     </task>
+    <task id="LOCAL-00001" summary="added rm command implementation">
+      <option name="closed" value="true" />
+      <created>1698696516452</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1698696516452</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -110,7 +119,8 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="added rm command implementation" />
+    <option name="LAST_COMMIT_MESSAGE" value="added rm command implementation" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
