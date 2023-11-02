@@ -164,7 +164,6 @@ public class Terminal {
         String newPath = args[0];
         Path newFilePath = currentDirectory.resolve(newPath);
         currentDirectory = (newFilePath);
- 
     }
 
     // TODO: Takes 1 argument and prints it.
