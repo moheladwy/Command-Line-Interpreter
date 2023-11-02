@@ -251,18 +251,21 @@ public class Terminal {
         } else {
             // Concatenate all the arguments to form a single string without quotations
             StringBuilder echoText = new StringBuilder();
-            for (String arg : args) {
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
                 if (arg.equals(">") || arg.equals(">>")) {
                     break;
-                } else if (arg.startsWith("\"") && arg.endsWith("\"") && arg.length() > 1) {
-                    echoText.append(arg, 1, arg.length() - 1).append(" ");
                 } else {
+                    // Remove the double quotations from the argument, if any
+                    arg = arg.replaceAll("\"", "");
+    
+                    // Add the argument to the echo text
                     echoText.append(arg).append(" ");
                 }
             }
-
+    
             // Remove the trailing space and print the result
-            String result = echoText.toString().trim();
+            String result = echoText.toString().replaceAll("\\s+$", "");
             return result;
         }
     }
