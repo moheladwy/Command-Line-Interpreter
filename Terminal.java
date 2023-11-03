@@ -244,11 +244,11 @@ public class Terminal {
 
     }
 
-    public String echo(String[] args) {
+    public String echo(String[] args) throws ArgumentException {
         // Check if there are arguments provided
-        if (args.length == 0) {
-            return "No input provided.";
-        } else {
+        if (args.length == 0)
+            throw new ArgumentException("No input provided.");
+        else {
             // Concatenate all the arguments to form a single string without quotations
             StringBuilder echoText = new StringBuilder();
             for (int i = 0; i < args.length; i++) {
@@ -258,12 +258,11 @@ public class Terminal {
                 } else {
                     // Remove the double quotations from the argument, if any
                     arg = arg.replaceAll("\"", "");
-    
+
                     // Add the argument to the echo text
                     echoText.append(arg).append(" ");
                 }
             }
-    
             // Remove the trailing space and print the result
             String result = echoText.toString().replaceAll("\\s+$", "");
             return result;
@@ -342,13 +341,11 @@ public class Terminal {
         }
     }
 
-    private void removeDirectory(File directory) {
+    private void removeDirectory(File directory) throws Exception {
         if (directory.exists()) {
             boolean removed = directory.delete();
-            if (removed) {
-                System.out.println(" Directory removed successfully: " + "\"" + directory.getName() + "\"");
-            } else {
-                System.out.println(" Failed to remove the directory: " + "\"" + directory.getName() + "\"");
+            if (!removed) {
+                throw new Exception("rmdir: Failed to remove the directory: " + "\"" + directory.getName() + "\"");
             }
         }
     }
@@ -424,7 +421,7 @@ public class Terminal {
             throw new ArgumentException("rm: takes 1 argument");
 
         String fileName = args[0];
-        File file = new File(fileName);
+        File file = new File(currentDirectory.toAbsolutePath() + "/" + fileName);
         if (!file.exists())
             throw new ArgumentException("rm: file does not exist");
 
