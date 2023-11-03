@@ -193,7 +193,7 @@ public class Terminal {
                     return;
                 }
                 break;
-            case "cp-r":
+            case "cp_r":
                 try {
                     cp_r(args);
                 } catch (Exception e) {
@@ -519,13 +519,13 @@ public class Terminal {
     }
 
     public String history(String[] args) {
-        String output = "Command History: ";
+        String output = "Command History: " + "\n";
 
         if (commandHistory.size() == 0)
             output += "Empty\n";
 
         for (int i = 0; i < commandHistory.size(); i++)
-            output += ((i + 1) + " " + commandHistory.get(i)).trim();
+            output += ((i + 1) + " " + commandHistory.get(i)).trim() + "\n";
 
         return output;
     }
